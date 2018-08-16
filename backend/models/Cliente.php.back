@@ -1,0 +1,87 @@
+<?php
+
+namespace backend\models;
+
+use Yii;
+use \common\models\User;
+
+/**
+ * This is the model class for table "tbl_cliente".
+ *
+ * @property integer $id_cliente
+ * @property string $nombre
+ * @property string $razon_social
+ * @property string $direccion
+ * @property integer $estado
+ * @property integer $codigo_postal
+ * @property string $email
+ * @property string $telefono
+ * @property string $whatsapp
+ * @property string $fecha_registro
+ * @property integer $delegacion_mpio
+ * @property string $rfc
+ * @property integer $id_usuario
+ * @property string $fecha_nacimiento
+ * @property string $apellido_materno
+ * @property string $apellido_paterno
+ *
+ * @property \common\models\User $idUsuario
+ */
+class Cliente extends \yii\db\ActiveRecord
+{
+    /**
+     * @inheritdoc
+     */
+    public static function tableName()
+    {
+        return 'tbl_cliente';
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function rules()
+    {
+        return [
+            [['estado', 'codigo_postal',  'delegacion_mpio', 'id_usuario'], 'integer'],
+            [['fecha_registro', 'fecha_nacimiento'], 'safe'],
+            [['nombre', 'direccion', 'apellido_materno', 'apellido_paterno'], 'string', 'max' => 300],
+            [['razon_social', 'email', 'whatsapp','telefono'], 'string', 'max' => 100],
+            [['rfc'], 'string', 'max' => 45],
+            [['id_usuario'], 'exist', 'skipOnError' => true, 'targetClass' => User::className(), 'targetAttribute' => ['id_usuario' => 'id']],
+        ];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function attributeLabels()
+    {
+        return [
+            'id_cliente' => 'Id Cliente',
+            'nombre' => 'Nombre',
+            'razon_social' => 'Razon Social',
+            'direccion' => 'Direccion',
+            'estado' => 'Estado',
+            'codigo_postal' => 'Codigo Postal',
+            'email' => 'Email',
+            'telefono' => 'Telefono',
+            'whatsapp' => 'Whatsapp',
+            'fecha_registro' => 'Fecha Registro',
+            'delegacion_mpio' => 'Delegacion Mpio',
+            'rfc' => 'Rfc',
+            'id_usuario' => 'Id Usuario',
+            'fecha_nacimiento' => 'Fecha Nacimiento',
+            'apellido_materno' => 'Apellido Materno',
+            'apellido_paterno' => 'Apellido Paterno',
+        ];
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getIdUsuario()
+    {
+        return $this->hasOne(User::className(), ['id' => 'id_usuario']);
+    }
+}

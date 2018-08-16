@@ -1,0 +1,687 @@
+<?php
+
+namespace frontend\modules\api\v1\controllers;
+
+use common\models\User;
+use frontend\modules\api\v1\resources\EventoAlarma;
+use yii\filters\auth\CompositeAuth;
+use yii\filters\auth\HttpBasicAuth;
+use yii\filters\auth\HttpBearerAuth;
+use yii\filters\auth\QueryParamAuth;
+use yii\rest\ActiveController;
+use yii\web\NotFoundHttpException;
+use yii\web\Response;
+use yii\helpers\Json;
+use yii\base\Object;
+use backend\models\AlarmaConfig;
+use yii\base\Exception;
+use frontend\models\AlarmaUsuario;
+use frontend\models\AlarmaColab;
+use backend\models\Cliente;
+use backend\models\Producto;
+use backend\models\CodigoLog;
+use frontend\models\ValidateForm;
+
+
+/**
+ * @author Jesus Nataren <jesus.nataren@pinfosoft.com.mx>
+ */
+class DeviceServiceController extends ActiveController
+{
+    /**
+     * @var string
+     */
+    public $modelClass = 'backend\models\Producto';
+
+    /**
+     * @return array
+     */
+    public function behaviors()
+    {
+        $behaviors = parent::behaviors();
+          list($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']) = explode(':', base64_decode(substr($_SERVER['REDIRECT_HTTP_AUTHORIZATION'], 6)));
+
+
+        $behaviors['authenticator'] = [
+            'class' => CompositeAuth::className(),
+            'authMethods' => [
+                [
+                    'class' => HttpBasicAuth::className(),
+                    'auth' => function ($username, $password) {
+                        $user = User::findByLogin($username);
+                        return $user->validatePassword($password)
+                            ? $user
+                            : null;
+                    }
+                ],
+                HttpBearerAuth::className(),
+                QueryParamAuth::className()
+            ]
+        ];
+
+        
+        $behaviors['verbFilter'] = [
+        		'class' => \yii\filters\VerbFilter::className(),
+        		'actions' => [
+        				'add-device'   => ['post'],
+        				'get-devices'   => ['get'],
+        				'get-token'   => ['post'],
+        		],
+        ];
+        
+        return $behaviors;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function actions()
+    {
+        return [
+        		
+         /*   'index' => [
+                'class' => 'yii\rest\IndexAction',
+                'modelClass' => $this->modelClass
+            ],*/
+        
+        	    
+       	/*	'create' => [
+        				'class' => 'yii\rest\CreateAction',
+        				'modelClass' => $this->modelClass,
+        			//	'findModel' => [$this, 'actionCreate']
+        		],*/
+        		        		
+     /*       'view' => [
+                'class' => 'yii\rest\ViewAction',
+                'modelClass' => $this->modelClass,
+                'findModel' => [$this, 'findModel']
+            ],*/
+            'options' => [
+                'class' => 'yii\rest\OptionsAction',
+            		'request' => [
+            				'class'=>'yii\web\Request',
+            				'parsers' => [
+            						'application/json' => '\yii\web\JsonParser',
+            				]
+            		]
+            ]
+        ];
+    }
+
+    /**
+     * @param $id
+     * @return null|static
+     * @throws NotFoundHttpException
+     */
+    public function findModel($id){
+    	
+    	
+    	$timeZone = isset($_GET['tz'])?$_GET['tz']:'America/Mexico_City';
+    	
+    	date_default_timezone_set($timeZone);
+    	 
+    	$fecha = date('Y-m-d H:i:s');
+    	
+        $model = EventoAlarma::findBySql('select * from tbl_evento_alarma 
+        		where ( fecha_suceso > date_sub(\''.$fecha.'\', interval 5 minute) AND fecha_suceso < \''.$fecha.'\' )and id_alarma =' .$id .' order by fecha_suceso desc')->one();
+	    	
+    	if (!isset($model)) {
+    		return ['ESTATUS'=>'0'];
+    	}
+    	
+    	return $model;
+    	
+        
+    }
+    
+    
+    /**
+     * @param $id
+     * @return null|static
+     * @throws NotFoundHttpException
+     */
+    public function actionGetSpecificConfig($im){
+    	 
+    	
+    	$model = AlarmaConfig::findOne($im);
+    	if (!$model) {
+    		throw new NotFoundHttpException;
+    	}
+    	return $model;
+    	 
+    }
+    
+    
+    /**
+     * @return null|static
+     * @throws NotFoundHttpException
+     */
+    public function actionGetDevices(){
+    
+    	$user  = \Yii::$app->user;
+    	
+		$client = Cliente::findOne(['id_usuario'=>$user->id]);
+		
+		if  (!$client){
+			
+			throw new \yii\web\HttpException(500,'Cliente no autorizado');
+		}
+    	
+		$productoRegistrado = Producto::STATUS_REGISTRED_CLIENT;
+		
+		$productos  =  Producto::findAll(['estado' => $productoRegistrado,'id_propietario'=>$client->id_cliente]);
+    	
+    	return $productos;
+    
+    }
+    
+    
+    
+    /**
+     * Creates  a new Device
+     */
+    public function actionAddDevice(){
+    	
+    	$post = file_get_contents("php://input");
+    	//decode json post input as php array:
+    	$data =Json::decode($post, true);
+    	
+    	$user  = \Yii::$app->user;
+    	
+    	try {
+    	$cliente = Cliente::findOne(['id_usuario'=> $user->id]);
+    	}catch (Exception $e){
+    		
+    		return $e;
+    	}
+    	
+    	if(!$cliente) 	throw new \yii\web\HttpException(500,'Cliente no autorizado');
+    	 
+    	$productoModel = new ValidateForm();
+    	
+    	$productoModel->attributes = $data;
+    	 
+    	$producto = Producto::findOne(['numero_serie'=>$productoModel->numero_serie, 'codigo_registro'=>$productoModel->codigo_registro]);
+    	
+    /*	if($productoModel->fechaAdquirio){//hay valor en la fecha, entonces se formatea para mysql
+    		$dateTmp = \DateTime::createFromFormat('d/m/Y', $productoModel->fechaAdquirio);
+    		$productoModel->fechaAdquirio = $dateTmp->format('Y-m-d');
+    	}*/
+    	
+    	
+    		if(!$producto){ 
+    			
+    			$productoModel->addError('numero_serie','Producto no encontrado, revise  número de serie');
+    		
+    			throw new \yii\web\HttpException(500,'Producto no encontrado, revise  número de serie');
+    		}
+    		else {
+    	
+    			if ($producto->estado  > Producto::STATUS_VALIDATED_PROVIDER){
+    	
+    				if ($producto->id_propietario ===  $cliente->id_cliente){
+    	
+    					//	$productoModel->addError('numero_serie','');
+    			
+    					$productoModel->addError('numero_serie','El producto ya esta asociado a su cuenta.');
+    					
+    				}else
+    					$productoModel->addError('numero_serie','Producto registrado  por  otro cliente, contacte al administrador');
+    					
+    			}elseif ($producto->estado > Producto::STATUS_CREATED){
+    					
+    				$producto->id_propietario	= 	$cliente->id_cliente;
+    				$producto->estado	= Producto::STATUS_REGISTRED_CLIENT;
+    				$producto->fecha_registro = date('Y-m-d');
+    				$producto->fecha_adquirio_cliente = $productoModel->fechaAdquirio;
+    	
+    				if($producto->save() ) {
+    						
+    					return ['estatus'=>'Producto registrado correctamente'];	
+    						
+    				}else{
+    						
+    					throw new \yii\web\HttpException(500,Json::encode($producto->getErrors()));
+    	
+    				}
+    	
+    			
+    					
+    			}else{
+    					
+    				$productoModel->addError('numero_serie','Producto no disponible');
+    				
+    				throw new \yii\web\HttpException(500,Json::encode($producto->getErrors()));
+    					
+    			}
+    	
+    	
+    		}
+    		 
+
+    }
+    
+    
+    /**
+     * Returns valid token
+     */
+    public function actionGetToken(){
+    	
+    	$post = file_get_contents("php://input");
+    	//decode json post input as php array:
+    	$data =Json::decode($post, true);
+    	
+    	$model = new CodigoLog();
+    	
+    	$model->attributes = $data;
+    	
+    	$user  = \Yii::$app->user;
+    	 
+   		$cliente = Cliente::findOne(['id_usuario'=> $user->id]);
+   		
+   		if (!$cliente){
+   			
+   			throw new \yii\web\HttpException(500,'Cliente no autorizado');
+   		}
+    	 
+    	
+    	
+    	$producto = Producto::findOne(['numero_serie'=>$model->numero_serie, 'id_propietario'=>$cliente->id_cliente, 'servicio_app'=>1 ]);
+    	
+    	if (!$producto){
+    	
+    		throw new \yii\web\HttpException(500,'Producto no encontrado o no tiene servicio [generar token por app]');
+    	}
+    	
+    	
+    	$lastCode   = CodigoLog::findBySql("select * from tbl_codigo_log where numero_serie  = '$producto->numero_serie' order by fecha desc")->one();
+    	
+    	
+    	if(  !isset($model->codigo_respuesta) || strlen($model->codigo_respuesta) < 8   ||  (  isset($lastCode)  && hexdec ( substr($lastCode->codigo_respuesta, -4) ) <= hexdec (substr( $model->codigo_respuesta,-4) ) ) ) {
+    		
+    		throw new \yii\web\HttpException(500,'Codigo de respuesta no valido: Revisa tus datos (numero de serie y codigo de repuesta) o apagar y prender el equipo nuevamente.');
+    		
+    	}
+    	
+    	
+    	//Se obtiene arreglo por pares KCBA0114 => K,C,B,A,0,1,1,4
+    	$numeroSerieArray = str_split($model->numero_serie,1);
+    	
+    	$arrayLengh = count($numeroSerieArray);
+    	
+    	if ($arrayLengh < 8){ //Es necesario al menos 5 caracteres para extraer la base
+    		
+    		throw new \yii\web\HttpException(500,'Numero de  serie no valido.');
+    	}
+    	
+    	
+    	
+    	$codigoRespuesta = substr( $model->codigo_respuesta, -4);
+    	
+    	
+    	$arrayLengh--;
+    	
+    	$hex1 = dechex( ord( $numeroSerieArray[$arrayLengh - 1 ] ) );  //penultimo caracter
+    	
+    	$hex2 = dechex( ord($numeroSerieArray[ $arrayLengh  ] ) ); //ultimo caracter
+    	
+    	$hex3 = dechex( ord( $numeroSerieArray[ $arrayLengh - 5 ] ) ); 
+    	
+    	$hex4 = dechex( ord( $numeroSerieArray[ $arrayLengh - 4 ] ) );
+    	
+    //	throw new \yii\web\HttpException(500,'Numero de  serie no valido.');
+    	
+    	//no se aplica xor
+    	$codigoRespuestaXorString = $codigoRespuesta;
+    	
+    	$codigoRespuestaXorString = substr($codigoRespuestaXorString, -2);
+    	
+    	$codigoRespuestaArray =  str_split($codigoRespuestaXorString,1);
+    	
+    	$codigoRespHex1 = dechex(hexdec($codigoRespuestaArray[0]) ^ 0xF );
+    	
+    	$codigoRespHex2 = dechex( hexdec($codigoRespuestaArray[1]) ^ 0xF );
+    	
+    	//Primer base
+    	$stringHex = $hex1.$hex2.$hex3.$hex4.$codigoRespuesta;
+    	
+    	
+    	
+    	
+    	
+    	//XOR 
+    	$codigoRespuestaXor = $codigoRespuestaXorString ^ 0xFFFF;
+    	 
+    	$codigoRespuestaXorString =  substr('0000' . $codigoRespuestaXor,-4); //dechex($codigoRespuestaXor);
+    	
+    	
+    	
+    	
+    	$stringHexArray1 = str_split($stringHex,2);
+    	
+    	$hex1 =  dechex( hexdec($hex1)  +  ( hexdec($codigoRespHex2) * 2 )  ); 
+    	
+    	$hex2 =  dechex( hexdec( $hex2 ) + (hexdec($codigoRespHex1) ^ 0xF ) );
+    	
+    	$hex3 = dechex( hexdec( $hex3 ) +  hexdec($codigoRespHex1)  );
+    	
+    	$tmpHex4 =  (hexdec($codigoRespHex2) ^ 0xF );
+    	
+    	$hex4 =   dechex( hexdec( $hex4 ) + $tmpHex4 );
+    	
+    
+    	
+    	
+    	//formateo en pares
+    	$sHex1 = '00'.$hex1;
+    	$sHex2 = '00'.$hex2;
+    	$sHex3 = '00'.$hex3;
+    	$sHex4 = '00'.$hex4;
+    	
+    	$sHex1 = substr($sHex1, -2);
+    	$sHex2 = substr($sHex2, -2);
+    	$sHex3 = substr($sHex3, -2);
+    	$sHex4 = substr($sHex4, -2);
+
+    	//segundo codigo base
+    	$stringHex = strtoupper($sHex1.$sHex2.$sHex3.$sHex4.$codigoRespuesta);
+    	
+
+    	if ($model->codigo_respuesta !==  strtoupper(substr($stringHex, -8)) ){
+    		
+    		throw new \yii\web\HttpException(500,'Codigo de respuesta no valido. Segunda base ');
+    	}
+    
+    	$stringHexArray =  str_split($stringHex, 2);
+    	
+    	$byteArray = [];
+    	
+    	foreach($stringHexArray as $hexString){
+    	
+    		$byteArray[] = hexdec ( $hexString );
+    	
+    	}
+    	 
+    	
+    	$num = 0;
+    	$giris = [];
+    	$i = 0;
+    	
+    	for($i= 0; $i<6; $i++){
+    		 
+    		for ($m=0; $m<8; $m++){
+    	
+    			if  (($byteArray[$i] >> $m ) & 1 ===  1) {
+    				$num = $num + 1;
+    			}
+    	
+    		}
+    		 
+    	}
+    	
+    	if (($num % 2) === 0) {
+    		$n = 0;
+    		for( $n = 0; $n<6; $n++){
+    			 
+    			 
+    			$giris[$n] = ($byteArray[5 - $n] ^ 0xFF);
+    		}
+    	}else{
+		    $num5 = 0;
+		    for( $num5 = 0; $num5 < 6; $num5++){
+		    	$giris[$num5] = $byteArray[5 - $num5];
+		    }
+	    }
+    	
+	    $j = 0;
+	    $k = 0;
+	    $str = '';
+	     
+	    for( $j = 0; $j<$num; $j++){
+
+	    	$this->rotate_array($giris,$giris);
+	    	 
+	    }
+    	
+	    $z = 1 + 1;
+	    
+	    $auxstr = '';
+	    
+	    for( $k = 0; $k< 6; $k++){
+	    	
+	    	$auxstr = ''.dechex($giris[$k]);
+	    	
+	    	if (strlen($auxstr) < 2){
+	    		
+	    		$auxstr = '0'.$auxstr;
+	    	}
+	    	
+	    	$str = ($str . $auxstr);
+	    }
+	    
+	    
+	    
+	    $str_array= str_split($str, 1);
+	    
+	    if ($model->activacion) {//activacion o desbloqueo
+	    	
+	    	$tokengenerado = $str_array[0] . $str_array[1] . $str_array[6] .$str_array[9];
+	    	
+	    }else{
+	    	
+	    	$tokengenerado = $str_array[9] . $str_array[1] . $str_array[6] .$str_array[0];
+	    }
+	    
+	    
+	    try {
+	    
+	    	$model->token_generado = strtoupper($tokengenerado) ;
+	    	 
+	    	$model->fecha = date("Y-m-d H:i:s");
+	    
+	    	$model->cliente = $cliente->id_cliente;
+	    
+	    	$model->save(false);
+	    
+	    } catch (Exception $e) {
+	    
+	    }
+	    
+	    
+	    //Keep just 5  records peer device
+	    
+	     
+	   $modelsToDelete = CodigoLog::findBySql("select * from tbl_codigo_log where numero_serie = '$model->numero_serie' order by fecha desc" )->all();
+	   
+	   
+	   
+	   if (count($modelsToDelete) > 5 ){
+	   	
+	   	
+	   	
+	   	for($i=5; $i<count($modelsToDelete); $i++){
+	   		$modelsToDelete[$i]->delete();
+	   	}
+	   	
+	   	
+	   }
+	    
+	    return ['estatus'=>'ok', 'token'=>strtoupper($tokengenerado)];
+    	 
+    }
+    
+    
+    
+	public function  rotate_array($giris, &$cikis){
+        				
+        				$num= 0;
+        				$index = 0;
+        				
+        				$num = (($giris[0] & 1) === 1)?  1 : 0;
+					
+        				$num = ($num << 1);
+        				$num = ($num) | ((($giris[1] & 1) === 1)? 1: 0);
+        				$num = ($num << 1);
+        				$num = ($num) | ((($giris[2] & 1) === 1)? 1: 0);
+        				$num = ($num << 1);
+						
+						
+						$valueTest =  ( (($giris[3] & 1) === 1)? 1: 0 );
+						
+        				$num = ($num) | ( (($giris[3] & 1) === 1)? 1: 0 );
+        				$num = ($num << 1);
+						
+        				$num = ($num) | ((($giris[4] & 1) === 1)? 1: 0);
+        				$num = ($num << 1);
+        				$num = ($num) | ((($giris[5] & 1) === 1)? 1: 0);
+        				
+						
+						
+        				$cikis[0] = ($giris[0] >> 1);
+        				$cikis[0] = (($cikis[0] & 0x7F) | (($num & 1) << 7));
+        				
+        				for ($index = 1; $index < 6; $index++){
+        				
+							$cikis[$index] = ($giris[$index] >> 1);
+							$cikis[$index] = (($cikis[$index] & 0x7F) |  ((($num >> ((6 - $index) & 0x1F)) & 1) << 7));
+        				
+        				}
+        				
+     }    
+    
+    /**
+     * Creates  a new Device
+     */
+    public function actionShareDevice()
+    {
+    	 
+    	$post = file_get_contents("php://input");
+    	//decode json post input as php array:
+    	$data =Json::decode($post, true);
+    	 
+    	$model = new AlarmaColab();
+    	 
+    	$model->attributes = $data;
+    	 
+    	$model->ACTIVO = true;
+    	 
+    	//$model->ID_USUARIO = \Yii::$app->user->id;
+    	 
+    	$model->FECHA_AGREGO = date('Y-m-d H:i:s');
+    	 
+    	if (!$model->validate() ||  !$model->save() ){
+    
+    		throw new Exception( Json::encode($model->getErrors()) );
+    
+    	}
+    
+    	return $model;
+    }
+    
+    
+    
+    public function actionDeleteDevice(){
+    	
+    	$post = file_get_contents("php://input");
+    	//decode json post input as php array:
+    	$data =Json::decode($post, true);
+    	
+    	$model = new AlarmaUsuario();
+    	
+    	$model->attributes = $data;
+    	
+    	$model = AlarmaUsuario::findOne($model->NUMERO_SERIE);
+    	
+    	
+    	if (!$model || $model->ID_USUARIO !== \Yii::$app->user->id){
+    		
+    		throw new Exception( "Dispositivo no encontrado.");
+    	}
+    	
+    	if(!$model->delete() ){
+    		
+    		throw new Exception( Json::encode($model->errors) );
+    	}
+    	
+    	return ["deleted"=>"true"];
+    	
+    }
+    
+    
+    public function actionDeniedDevice(){
+    	 
+    	$post = file_get_contents("php://input");
+    	//decode json post input as php array:
+    	$data =Json::decode($post, true);
+    	 
+    	$model = new AlarmaColab();
+    	 
+    	$model->attributes = $data;
+    	
+    	if (!$model->validate()){
+    		
+    		throw new Exception( Json::encode($model->getErrors()));
+    		
+    	}
+    	 
+    	$model = AlarmaColab::findOne(['NUMERO_SERIE'=>$model->NUMERO_SERIE, 'EMAIL'=>$model->EMAIL]);
+    	 
+    	 
+    	if (!$model || $model->nUMEROSERIE->ID_USUARIO !== \Yii::$app->user->id){
+    
+    		throw new Exception( "Dispositivo no encontrado.");
+    	}
+    	 
+    	if(!$model->delete() ){
+    
+    		throw new Exception( Json::encode($model->errors) );
+    	}
+    	 
+    	return ["deleted"=>"true"];
+    	 
+    }
+    
+    
+
+    
+    
+    /**
+     *
+     * @return multitype:\yii\db\static
+     */
+    public function actionGetSharedUsers($serie){
+
+    	
+    	$model = AlarmaUsuario::findOne($serie);
+    	 
+    	 
+    	if (!$model || $model->ID_USUARIO !== \Yii::$app->user->id){
+    	
+    		throw new Exception( "Dispositivo no encontrado.");
+    	}
+    	 
+    	
+    	return  $model->alarmaColabs;
+    	
+    	
+    }
+    
+    
+    
+    
+    /**
+    public function checkAccess($action, $model = null, $params = [])
+    {
+    	// check if the user can access $action and $model
+    	// throw ForbiddenHttpException if access should be denied
+    	if ($action === 'update' || $action === 'delete-device') {
+    		if ($model->author_id !== \Yii::$app->user->id)
+    			throw new \yii\web\ForbiddenHttpException(sprintf('You can only %s articles that you\'ve created.', $action));
+    	}
+    }**/
+    
+    
+}
+
+
+//manejar Desbloqueo

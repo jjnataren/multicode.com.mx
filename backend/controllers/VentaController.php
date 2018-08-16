@@ -1,0 +1,432 @@
+<?php
+
+namespace backend\controllers;
+
+
+use kartik\mpdf\Pdf;
+use Yii;
+use backend\models\Venta;
+use backend\models\search\VentaSearch;
+use backend\models\search\ProductoSearch;
+use yii\web\Controller;
+use yii\web\NotFoundHttpException;
+use yii\filters\VerbFilter;
+use backend\models\Producto;
+use yii\base\Object;
+
+/**
+ * VentaController implements the CRUD actions for Venta model.
+ */
+class VentaController extends Controller
+{
+    public function behaviors()
+    {
+        return [
+            'verbs' => [
+                'class' => VerbFilter::className(),
+                'actions' => [
+                    'delete' => ['post'],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Lists all Venta models.
+     * @return mixed
+     */
+    public function actionIndex()
+    {
+        $searchModel = new VentaSearch();
+        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
+
+        return $this->render('index', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+    }
+
+    /**
+     * Displays a single Venta model.
+     * @param integer $id
+     * @return mixed
+     */
+    public function actionView($id)
+    {
+        return $this->render('view', [
+            'model' => $this->findModel($id),
+        ]);
+    }
+
+    
+    
+    /**
+     * Generates a PDF Report of order venta
+     * @param integer $id
+     */
+    public function actionReporteOrdenVenta($id){
+    	
+    //	Yii::$app->response->format = 'pdf';
+    	
+    	$model = $this->findModel($id);
+    	
+    	$content = $this->renderPartial('reporte-orden-venta',['model'=>$model]);
+    	
+    	
+    	$pdf = new Pdf([
+    			// set to use core fonts only
+    			'mode' => Pdf::MODE_UTF8,
+    			// A4 paper format
+    			'format' => Pdf::FORMAT_A4,
+    			// portrait orientation
+    			'orientation' => Pdf::ORIENT_PORTRAIT,
+    			// stream to browser inline
+    			//'destination' => Pdf::DEST_BROWSER,
+    			// your html content input
+    			'content' => $content,
+    			// format content from your own css file if needed or use the
+    			// enhanced bootstrap css built by Krajee for mPDF formatting
+    			'cssFile' => '@vendor/kartik-v/yii2-mpdf/assets/kv-mpdf-bootstrap.min.css',
+    			// any css to be embedded if required
+    			'cssInline' => '.kv-heading-1{font-size:18px}
+    							#menu{
+								      font:5px;
+								    }',
+    			// set mPDF properties on the fly
+    			'options' => ['title' => 'Reporte de orden de venta'],
+    			// call mPDF methods on the fly
+    			'methods' => [
+    					'SetHeader'=>['Reporte orden de venta'],
+    					'SetFooter'=>['{PAGENO}'],
+    			]
+    	]);
+    	
+    	// return the pdf output as per the destination setting
+    	return $pdf->render();
+    	
+    	
+    }
+    
+    
+    /**
+     * @inheritdoc
+     */
+    public function beforeAction($action)
+    {
+    	if ($action->id == 'create') {
+    		$this->enableCsrfValidation = false;
+    	}
+    
+    	return parent::beforeAction($action);
+    }
+    
+    
+    /**
+     * Creates a new Venta model.
+     * If creation is successful, the browser will be redirected to the 'view' page.
+     * @return mixed
+     */
+    public function actionCreate()
+    {
+        
+    
+    	$model = new Venta();
+        $searchModel = new ProductoSearch();
+        $sessionProducts = [];
+        
+        $montoTotal = 0.0;
+        
+        /**
+         * Manejo de sesion
+         */
+               
+        $session = Yii::$app->session;
+        // check if a session is already open
+        if (!$session->isActive)
+         	// open a session
+        	$session->open();
+        // close a session
+        //$session->close();
+        // destroys all data registered to a session.
+        //$session->destroy();
+        
+        if ($session->has('vender')){
+        	
+        	$sessionProducts =  $session->get('vender');
+        	
+        }else{
+        	
+        	$session['vender'] = $sessionProducts;
+        	
+        }
+        
+        
+        /**
+         * Evento donde se agrega un producto
+         */
+        
+        
+        if ($model->load(Yii::$app->request->post()) || Yii::$app->request->post()) {
+        	
+        	if (Yii::$app->request->post('seleccionarProducto')){
+        	
+        		$productoSeleccionado =  Yii::$app->request->post('seleccionarProducto');
+        		
+        		$productoSeleccionado = 
+        			Producto::findOne(['numero_serie'=>$productoSeleccionado,'estado'=>Producto::STATUS_CREATED]);
+        		
+        		if($productoSeleccionado){
+        			
+        			$sessionProducts [$productoSeleccionado->numero_serie] = $productoSeleccionado;
+        			
+        			$session['vender'] = $sessionProducts;
+        			
+        		}else{
+        			
+        			Yii::$app->getSession()->setFlash('alert', [
+        					'body'=>\Yii::t('frontend', 'El producto seleccionado no es valido'),
+        					'options'=>['class'=>'alert-danger']
+        			]);
+        			
+        		}
+        		
+        	}elseif(Yii::$app->request->post('cancelar')){
+        	
+        		$sessionProducts = [];
+        		
+        		$session['vender'] = $sessionProducts;
+        		
+        		$session->destroy();
+        		
+        		return $this->redirect(['index']);
+        		
+        		
+        	}elseif(Yii::$app->request->post('vender')){
+        		
+        		
+        		if (!count($sessionProducts)){
+        			
+        			Yii::$app->getSession()->setFlash('alert', [
+        					'body'=>\Yii::t('frontend', 'Es requerido incluir al menos un producto'),
+        					'options'=>['class'=>'alert-danger']
+        			]);
+        			
+        		}else{
+        	
+        		$transaction = Venta::getDb()->beginTransaction();
+        		try {
+        			
+        			$model->fecha_venta_real = date("Y-m-d H:i:s");
+        			
+        		
+        			
+        			if($model->save()){
+        				
+        				$flag_on_error = false;
+        				
+        				foreach ($sessionProducts as $sessionProduct){
+        					
+        					
+        				if ($sessionProduct->estado ===  Producto::STATUS_CREATED) {
+        					
+        					
+        					$sessionProduct->numero_orden = $model->numero_orden;
+        					$sessionProduct->id_provedor = $model->clave_proveedor;
+        					$sessionProduct->fecha_asigno_provedor = date('Y-m-d');
+        					$sessionProduct->estado = Producto::STATUS_ASIGNDED_PROVIDER;
+        					$montoTotal += $sessionProduct->precio_sugerido;
+        					
+        					
+        					if( !$sessionProduct->save()){
+							
+        						$flag_on_error = true;
+        						
+        						break;
+
+        					}
+        					
+        				}else{
+        					
+        					$flag_on_error = true;
+        					
+        					break;
+        					
+        				}
+        					
+        				}
+        			        
+        				if (!$flag_on_error){
+        					
+        					$model->precio_publico = 	$montoTotal;
+        					
+        					if($model->iva){
+        						
+        						$montoTotal *= 1.16;
+        						//TODO El iva esta sujeto a una configuracion
+        						
+        					}
+        					
+        					$model->monto_total = 	$montoTotal -  (($model->descuento/100) * $montoTotal );
+        					
+        					$model->save();
+        					
+        					
+        					$transaction->commit();
+        					
+        					$sessionProducts = [];
+        					 
+        					$session['vender'] = $sessionProducts;
+        					 
+        					$session->destroy();
+        					
+        					Yii::$app->getSession()->setFlash('alert', [
+        							'body'=>\Yii::t('frontend', 'Orden de venta generada correctamente'),
+        							'options'=>['class'=>'alert-success']
+        					]);
+        					
+        			
+        					
+        					return $this->redirect(['view', 'id' => $model->numero_orden]);
+        					
+        				}else{
+        					
+        					Yii::$app->getSession()->setFlash('alert', [
+        							'body'=>\Yii::t('frontend', 'Ha ocurrido un error al realizar la venta. Detalle: No se puede agregar el producto ['.
+        									$sessionProduct->numero_serie .implode(",",  $sessionProduct->errors ) . ']'),
+        							'options'=>['class'=>'alert-danger']
+        					]);
+        					
+        					$transaction->rollBack();
+        					
+        					
+        					
+        				}
+        				
+        				
+        			}else{
+        				
+        				$transaction->rollBack();
+        				
+        			}
+        			// ...other DB operations...
+        			
+        		} catch(\Exception $e) {
+        			$transaction->rollBack();
+        			$model->validate();
+        		//	throw $e;
+        		}
+        		
+        		}	
+        		
+        		
+        	}elseif(Yii::$app->request->post('remover')){
+        		
+        		$productoSeleccionado =  Yii::$app->request->post('remover');
+        		
+        		unset($sessionProducts[$productoSeleccionado]); 
+        		
+        		$session['vender'] = $sessionProducts;
+        		
+        	}
+        	
+        	
+       	}
+       	
+       		
+       	$notinProducts = [];
+       	
+       	if ($sessionProducts){
+       	 
+       	foreach ($sessionProducts as $prod){
+       	
+       	
+       		$notinProducts[] = $prod->numero_serie;
+       	
+       	}
+       	
+       	}
+       	
+       	$dataProvider = $searchModel->searchNotIn(Yii::$app->request->queryParams,$notinProducts,Producto::STATUS_CREATED);
+       	
+        	
+            return $this->render('create', [
+                'model' => $model,
+            	'dataprovider'=>$dataProvider,
+            		'searchModel'=>$searchModel,
+            		'productos'=>$sessionProducts
+            		
+            ]);
+    }
+
+    /**
+     * Updates an existing Venta model.
+     * If update is successful, the browser will be redirected to the 'view' page.
+     * @param integer $id
+     * @return mixed
+     */
+    public function actionUpdate($id)
+    {
+        $model = $this->findModel($id);
+
+        if ($model->load(Yii::$app->request->post()) && $model->save()) {
+            return $this->redirect(['view', 'id' => $model->numero_orden]);
+        } else {
+            return $this->render('update', [
+                'model' => $model,
+            ]);
+        }
+    }
+
+    /**
+     * Deletes an existing Venta model.
+     * If deletion is successful, the browser will be redirected to the 'index' page.
+     * @param integer $id
+     * @return mixed
+     */
+    public function actionDelete($id)
+    {
+        
+    	
+    	$model =  $this->findModel($id);
+    	
+    	$transaction = Venta::getDb()->beginTransaction();
+    	try {
+    	
+    	
+    	foreach ($model->productos as $product){
+    		
+    		$product->estado = Producto::STATUS_CREATED;
+    		
+    		$product->save();
+    	}
+    	
+    	$model->delete();
+    	
+    	$transaction->commit();
+    	
+    	} catch(\Exception $e) {
+    		$transaction->rollBack();
+    		throw $e;
+    	}
+              
+
+        return $this->redirect(['index']);
+        
+    }
+
+    /**
+     * Finds the Venta model based on its primary key value.
+     * If the model is not found, a 404 HTTP exception will be thrown.
+     * @param integer $id
+     * @return Venta the loaded model
+     * @throws NotFoundHttpException if the model cannot be found
+     */
+    protected function findModel($id)
+    {
+        if (($model = Venta::findOne($id)) !== null) {
+            return $model;
+        } else {
+            throw new NotFoundHttpException('The requested page does not exist.');
+        }
+    }
+}
