@@ -12,7 +12,7 @@ class Module extends \yii\base\Module
     /**
      * @var bool Is users should be activated by email
      */
-    public $shouldBeActivated = true;
+    public $shouldBeActivated = false;
 
     /**
      * @inheritdoc

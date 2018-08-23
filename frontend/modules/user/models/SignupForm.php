@@ -37,9 +37,9 @@ class SignupForm extends Model
      * @var
      */
     public $codigo;
-    
-    
-    
+
+
+
     /**
      * @inheritdoc
      */
@@ -94,32 +94,32 @@ class SignupForm extends Model
             $user = new User();
             $user->username = $this->username;
             $user->email = $this->email;
-            $user->status = $shouldBeActivated ? User::STATUS_NOT_ACTIVE : User::STATUS_ACTIVE;
+            $user->status =  User::STATUS_ACTIVE;
             $user->setPassword($this->password);
             if(!$user->save()) {
                 throw new Exception("User couldn't be  saved");
             };
             $user->afterSignup();
-            
+
             if ($shouldBeActivated) {
                 $token = UserToken::create(
                     $user->id,
                     UserToken::TYPE_ACTIVATION,
                     Time::SECONDS_IN_A_DAY
                 );
-                
-                
-                
+
+
+
                 $urlactivacion = Url::to(['/user/sign-in/activation', 'token' => $token->token], true);
-                
+
                 $content = '<h1>Hola '. $user->username.',  bienvenido a MC Multicode</h1>' .
                 			'<p> Te hemos creado una cuenta, sin embargo es necesario verificarla, en el siguiente enlace podras hacerlo. </p>'.
                 				'<p><a href="'.$urlactivacion.'">Activar cuenta ahora!</a></p>'.
                 				'<br /><p><small>Si nopuedes ver el enlace por favor copia y pega el siguiente link</small></p>' .
                 				'<br /> '.$urlactivacion;
-                
-                
-                
+
+
+
               try{
                 Yii::$app->mailer->compose()
                 ->setTo($this->email)
@@ -128,16 +128,16 @@ class SignupForm extends Model
                 ->setHtmlBody($content)
                 ->send();
                 }catch (\Swift_TransportException $e){
-                
+
                 	Yii::$app->getSession()->setFlash('alert', [
                 			'body' => 'No fue posible enviar correo con el detalle, consulte al administrador.',
                 			'options' => ['class'=>'alert-danger']
                 	]);
-                	 
-                
+
+
                 }
-                
-                
+
+
                 /*
                 Yii::$app->commandBus->handle(new SendEmailCommand([
                     'subject' => Yii::t('frontend', 'Activation email'),
@@ -147,7 +147,7 @@ class SignupForm extends Model
                         'url' => Url::to(['/user/sign-in/activation', 'token' => $token->token], true)
                     ]
                 ]));*/
-                
+
              /*   try{
                 Yii::$app->mailer->compose()
                 ->setTo($this->email)
@@ -156,12 +156,12 @@ class SignupForm extends Model
                 ->setHtmlBody('<h1>Url de activacion</h1>' )
                 ->send();
                 }catch (Exception $e){
-                	
+
                 	throw e;
-                }*/                		
-          
-                
-                
+                }*/
+
+
+
             }
             return $user;
         }

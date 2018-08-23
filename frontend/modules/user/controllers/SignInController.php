@@ -38,7 +38,7 @@ class SignInController extends \yii\web\Controller
     public function actions()
     {
         return [
-        	
+
         		'captcha' => [
         				'class' => 'yii\captcha\CaptchaAction',
         				'fixedVerifyCode' => YII_ENV_TEST ? 'testme' : null
@@ -104,7 +104,7 @@ class SignInController extends \yii\web\Controller
             return ActiveForm::validate($model);
         }
         if ($model->load(Yii::$app->request->post()) && $model->login()) {
-        	
+
         	Yii::$app->getSession()->setFlash('alert', [
         			'body' => Yii::t(
         					'frontend',
@@ -112,7 +112,7 @@ class SignInController extends \yii\web\Controller
         			),
         			'options' => ['class'=>'alert-success']
         	]);
-        	
+
             return $this->redirect("/");
         } else {
             return $this->render('login', [
@@ -136,75 +136,75 @@ class SignInController extends \yii\web\Controller
     public function actionSignup()
     {
         $model = new SignupForm();
-        
+
         $userProfile = new UserProfile();
-        
+
         $product = new ValidateForm();
-        
+
         if ($model->load(Yii::$app->request->post())) {
-        	
+
         	$product->load(Yii::$app->request->post());
-        	
+
         	$newProduct = Producto::findOne(['numero_serie'=>$product->numero_serie, 'codigo_registro'=>$product->codigo_registro]);
 
         	if (!$newProduct || $newProduct->id_propietario || $newProduct->estado > Producto::STATUS_SOLED_CLIENT  ){
-        		
+
         		$product->addError('numero_serie','El número de serie indicado no existe en inventario o esta asignado a otro usuario.');
-        		
+
         		$model->validate();
-        		
-        		$userProfile->load(Yii::$app->request->post());	
-        		
+
+        		$userProfile->load(Yii::$app->request->post());
+
         		$userProfile->validate();
-        			
+
         		return $this->render('signup', [
         				'model' => $model,
         				'userProfile'=>$userProfile,
         				'productoModel'=>$product,
-        		
+
         		]);
-        		
-        		
+
+
         	}
-        	
-        	
+
+
         	$transaction = Cliente::getDb()->beginTransaction();
-        	
+
         	try {
-        		
-        		
+
+
         		$user = $model->signup();
-        		 
+
         		$userProfile = isset($user)? UserProfile::findOne($user->id) : new UserProfile();
-        		
+
         		$userProfile->load(Yii::$app->request->post());
-        		 
+
         		$cliente  =  new Cliente();
-        		 
+
         		$cliente->fecha_registro  = date("Y-m-d H:i:s");
-        		 
+
         		$cliente->apellido_materno   = $userProfile->lastname;
-        		 
+
         		$cliente->apellido_paterno   = $userProfile->middlename;
-        		 
+
         		$cliente->nombre   = $userProfile->firstname;
-        		 
+
         		$cliente->id_usuario  = isset($user->id) ? $user->id : null;
-        		 
+
         		$cliente->save();
-        		 
+
         		$userProfile->save();
-        		 
+
         		$newProduct->fecha_registro = date('Y-m-d');
-        		 
+
         		$newProduct->estado = Producto::STATUS_REGISTRED_CLIENT;
-        		 
+
         		$newProduct->id_propietario	= 	$cliente->id_cliente;
-        		 
+
         		$newProduct->save();
-        	
+
         		$transaction->commit();
-        	
+
         	}catch (\Exception $e) {
         		$transaction->rollBack();
         		throw $e;
@@ -212,24 +212,24 @@ class SignInController extends \yii\web\Controller
         		$transaction->rollBack();
         		throw $e;
         	}
-            
+
             if ($user && $newProduct && $cliente) {
 
             	if ($model->shouldBeActivated()) {
-                	
+
                 } else {
                     Yii::$app->getUser()->login($user);
                 }
-                
+
                 Yii::$app->getSession()->setFlash('alert', [
-                		'body' =>'Tu cuenta ha sido creada, consulta tu correo para mas detalles.',
+                		'body' =>'<i class="fa fa-check-circle fa-2x"></i> <h4>Tu cuenta ha sido creada correctamente.</h4>',
                 		'options' => ['class'=>'alert-success']
                 ]);
-                
-              
+
+
                 return $this->goHome();
             }else{
-            	
+
 
             	Yii::$app->getSession()->setFlash('alert', [
             			'body' => Yii::t(
@@ -238,20 +238,20 @@ class SignInController extends \yii\web\Controller
             			),
             			'options' => ['class'=>'alert-danger']
             	]);
-            	
+
             }
         }
 
         return $this->render('signup', [
             'model' => $model,
         	'userProfile'=>$userProfile,
-        	'productoModel'=>$product,	
+        	'productoModel'=>$product,
         ]);
     }
 
-    
+
     /**
-     * 
+     *
      * @param unknown $token
      * @throws BadRequestHttpException
      */

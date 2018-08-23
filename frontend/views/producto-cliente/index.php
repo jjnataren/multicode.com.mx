@@ -12,7 +12,8 @@ use backend\models\Producto;
 
 $this->title = Yii::t('frontend', 'Mis productos');
 
-$this->registerJs("$('#dataTable1').dataTable( {'language': {'url': '//cdn.datatables.net/plug-ins/9dcbecd42ad/i18n/Spanish.json' }});", View::POS_END, 'my-options');
+$this->registerJs("$('#dataTable1').dataTable( {'language': {'url': '//cdn.datatables.net/plug-ins/9dcbecd42ad/i18n/Spanish.json' },
+                                                    });", View::POS_END, 'my-options');
 
 
 ?>
@@ -41,52 +42,65 @@ $this->registerJs("$('#dataTable1').dataTable( {'language': {'url': '//cdn.datat
 <div class="col-md-12">
 <h2 class="classic-title"><span><?php echo Yii::t('frontend', 'Productos Registrados') ?></span></h2>
 
-      <div class="panel panel-default">
-        <div class="panel-body">
-        
-  <div class="box-body table-responsive" >
-                                
-                          <table id="dataTable1" class="table table-bordered">
+
+  <div class="table-responsive" >
+
+                          <table id="dataTable1" class="table table-condensed table-hover">
 							<thead>
 								<tr>
-									<th>No. serie</th>
-									<th>Tipo</th>
+
+									<th colspan="2">No. serie</th>
 									<th>Descripción</th>
+
 									<th>Código de Validación</th>
-									<th>Status</th>
-									<th>...</th>
-																											
+									<th>Estatus</th>
+
+
 								</tr>
 							</thead>
 							<tbody>
-							
-							
+
+
 							<?php foreach ($productos as $producto):?>
-							
+
 							<?php $estado= isset(Producto::$estados[$producto->estado])? Producto::$estados[$producto->estado]: 'Desconocido'  ?>
-							
+
 							<tr>
+
+								<td>
+
+								<?php if($producto->servicio_app === 1):?>
+
+								<a href="/producto-cliente/generar-token?serie=<?=$producto->numero_serie;?>" title="Generar token" class="btn btn-primary">	<i class="fa fa-key fa-lg" ></i> </a>
+
+								<?php else:?>
+
+								<span class="fa-stack fa-lg" title="No cuenta con servicio para genera token">
+                                  <i class="fa fa-key fa-stack-1x" title="No cuenta con servicio para genera token"></i>
+                                  <i class="fa fa-ban fa-stack-2x text-danger" style="color:red;"></i>
+                                </span>
+
+								<?php endif;?>
+								</td>
 								<td><?= $producto->numero_serie; ?></td>
-								<td><?= $producto->tipoProducto->nombre; ?></td>
-								<td><?= $producto->descripcion; ?></td>
+								<td><?= $producto->tipoProducto->nombre; ?> / <?= $producto->descripcion; ?></td>
+
 								<td><?= $producto->codigo_registro; ?></td>
 								<td><?= $estado; ?></td>
-								
-								
-								
-								<td><i class="fa fa-lock" aria-hidden="true" ></i></td>
+
+
+
+
 							</tr>
-						
+
 						<?php endforeach;?>
 							</tbody>
-							
-						</table>	
-                                
+
+						</table>
+
                                 </div>
-                           </div> 
-                           
-                          </div>
+
                        </div>
                      </div>
-                     
+
 </div>
