@@ -11,18 +11,18 @@ use yii\helpers\Html;
 $this->beginContent('@frontend/views/layouts/_clear.php')
 ?>
 <div id="container">
-   
+
     <!-- Start Header Section -->
     <div class="hidden-header"></div>
     <header class="clearfix">
 
       <!-- Start Top Bar -->
-      <!-- 
+      <!--
       <div class="top-bar dark-bar" style="display: block;">
         <div class="container">
           <div class="row">
             <div class="col-md-6">
-            
+
               <ul class="contact-details">
                 <li><a href="#"><i class="fa fa-mobile"></i> Tel: (55)69325006</a>
                 </li>
@@ -31,11 +31,11 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
                 <li><a href="#"><i class="fa fa-phone"></i> Atención Lun. a Vier. de 11 a 14 Horas.</a>
                 </li>
               </ul>
-             
+
             </div>
-           
+
             <div class="col-md-6">
-              
+
               <ul class="social-list">
                 <li>
                   <a class="facebook itl-tooltip" data-placement="bottom" title="Facebook" href="https://www.facebook.com/multicode.alfredotrejo?fref=ts" target="_blank"><i class="fa fa-facebook"></i></a>
@@ -43,11 +43,11 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
                 <li>
                   <a class="twitter itl-tooltip" data-placement="bottom" title="Twitter" href="#"><i class="fa fa-twitter"></i></a>
                 </li>
-              
+
                 <li>
                   <a class="google itl-tooltip" data-placement="bottom" title="YouTube" href="https://www.youtube.com/channel/UCsTYMtdxA-RbKesEiBAJkDA" target="_blank"><i class="fa fa-youtube"></i></a>
                 </li>
-              
+
                 <li>
                   <a class="dribbble itl-tooltip" data-placement="bottom" title="Dribble" href="#"><i class="fa fa-dribbble"></i></a>
                 </li>
@@ -65,18 +65,18 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
                 </li>
                 <li>
                   <a class="vimeo itl-tooltip" data-placement="bottom" title="vimeo" href="#"><i class="fa fa-vimeo-square"></i></a>
-                </li> 
+                </li>
                 <li>
                   <a class="skype itl-tooltip" data-placement="bottom" title="Skype" href="#" target="_blank"><i class="fa fa-skype"></i></a>
                 </li>
               </ul>
-             
+
             </div>
-           
+
           </div>
-         
+
         </div>
-        
+
       </div>
        -->
       <!-- .top-bar -->
@@ -105,19 +105,19 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
                   <input type="text" value="" name="s" id="s" placeholder="Search the site...">
                 </form>
               </div>
-            </div>	
+            </div>
             <!-- End Search -->
             <!-- Start Navigation List -->
             <ul class="nav navbar-nav navbar-right">
               <li>
                 <a href="/">Inicio</a>
-                
+
               </li>
 	          <li>
                 <a href="/site/nosotros">Nosotros</a>
-               
+
               </li>
-             
+
                <li>
                 <a href="#">Productos</a>
                 <ul class="dropdown">
@@ -125,50 +125,50 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
                   </li>
                   <li><a href="/site/accesorios">Accesorios</a>
                   </li>
-                  
+
                   <li><a href="/site/validar-producto">Validar producto</a>
                   </li>
-                 
+
                 </ul>
               </li>
-              
+
               <li>
                 <a href="/site/distribuidor">Distribuidores </a>
-               
+
               </li>
               <li>
                 <a href="/site/ventas">Ventas</a>
-               
+
               </li>
-              
+
               <li><a href="/site/contact">Contacto</a>
-              
+
               <?php if(Yii::$app->user->isGuest):?>
-              	
-              
-              	
-              	
+
+
+
+
               		<li>
                 <a href="#">Clientes</a>
                 <ul class="dropdown">
                 <li><a href="<?= Url::to(['/user/sign-in/signup']); ?>"><?=Yii::t('frontend', 'Signup') ?></a></li>
-                 
+
                 <li><a href="<?= Url::to(['/user/sign-in/login']); ?>"><?=Yii::t('frontend', 'Login') ?></a></li>
                 </ul>
               </li>
-              	
-              	
-              
+
+
+
               <?php endif;?>
-              
-              
-              
+
+
+
               <?php if(!Yii::$app->user->isGuest):?>
-              
-                 <?php if(!(Yii::$app->user->can('manager'))):?> 
-					              
+
+                 <?php if(!(Yii::$app->user->can('manager'))):?>
+
               <li>
-                <a href="#">Mis productos</a>
+                <a href="#"><i class="fa fa-mobile"></i> Mis productos</a>
                 <ul class="dropdown">
                   <li><a href="<?= Url::to(['/producto-cliente/mis-productos']); ?>"><?= Yii::t('frontend', 'Ver todos') ?></a>
                   </li>
@@ -177,25 +177,25 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
                  <li>
                  <a href="<?= Url::to(['/user/default/index']); ?>"><?= Yii::t('frontend', 'Soporte y ayuda') ?></a>
                   </li>
-               
+
                 </ul>
               </li>
               <?php endif;?>
-              
+
               	<li>
-                <a href="#"><?= Yii::$app->user->identity->getPublicIdentity() ?>+</a>
+                <a href="#"><i class="fa fa-user"></i>  <?= Yii::$app->user->identity->username ?></a>
                 <ul class="dropdown">
-                <?php if(Yii::$app->user->can('user')):?> 
+                <?php if(Yii::$app->user->can('user')):?>
                   <li><a href="<?= Url::to(['/user/default/index']); ?>"><?= Yii::t('frontend', 'Settings') ?></a>
                   </li>
                   <?php endif;?>
-                  
-                  <?php if(!(Yii::$app->user->can('manager'))):?> 
+
+                  <?php if(!(Yii::$app->user->can('manager'))):?>
                   <li><a href="<?= Url::to(['/site/actualizar-informacion-personal']); ?>"><?= Yii::t('frontend', 'Información de contacto') ?></a>
                   </li>
                       <?php endif;?>
-                      
-                 <?php if(Yii::$app->user->can('manager')):?> 
+
+                 <?php if(Yii::$app->user->can('manager')):?>
                  <li><a href="<?=  Yii::getAlias('@backendUrl'); ?>"><?= Yii::t('frontend', 'Backend') ?></a>
                   </li>
                   <?php endif;?>
@@ -204,9 +204,9 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
                   </li>
                 </ul>
               </li>
-              
+
               <?php endif;?>
-              
+
             </ul>
             <!-- End Navigation List -->
           </div>
@@ -214,16 +214,16 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
 
         <!-- Mobile Menu Start -->
         <ul class="wpb-mobile-menu">
- 
+
               <li>
                 <a href="/">Inicio</a>
-                
+
               </li>
 	          <li>
                 <a href="/site/nosotros">Nosotros</a>
-               
+
               </li>
-             
+
                <li>
                 <a href="#">Productos</a>
                 <ul class="dropdown">
@@ -231,48 +231,48 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
                   </li>
                   <li><a href="/site/accesorios">Accesorios</a>
                   </li>
-                  
+
                   <li><a href="/site/validar-producto">Validar producto</a>
                   </li>
-                 
+
                 </ul>
               </li>
-              
+
               <li>
                 <a href="/site/distribuidor">Distribuidores </a>
-               
+
               </li>
               <li>
                 <a href="/site/ventas">Ventas</a>
-               
+
               </li>
-             
+
               <li><a href="/site/contact">Contacto</a>
-              
+
               <?php if(Yii::$app->user->isGuest):?>
-              	
-              
-              	
-              	
+
+
+
+
               		<li>
                 <a href="#">Clientes</a>
                 <ul class="dropdown">
                 <li><a href="<?= Url::to(['/user/sign-in/signup']); ?>"><?=Yii::t('frontend', 'Signup') ?></a></li>
-                 
+
                 <li><a href="<?= Url::to(['/user/sign-in/login']); ?>"><?=Yii::t('frontend', 'Login') ?></a></li>
                 </ul>
               </li>
-              	
-              	
-              
+
+
+
               <?php endif;?>
-              
-              
-              
+
+
+
               <?php if(!Yii::$app->user->isGuest):?>
-              
-                 <?php if(!(Yii::$app->user->can('manager'))):?> 
-					              
+
+                 <?php if(!(Yii::$app->user->can('manager'))):?>
+
               <li>
                 <a href="#">Mis productos</a>
                 <ul class="dropdown">
@@ -283,25 +283,25 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
                  <li>
                  <a href="<?= Url::to(['/user/default/index']); ?>"><?= Yii::t('frontend', 'Soporte y ayuda') ?></a>
                   </li>
-               
+
                 </ul>
               </li>
               <?php endif;?>
-              
+
               	<li>
                 <a href="#"><?= Yii::$app->user->identity->getPublicIdentity() ?>+</a>
                 <ul class="dropdown">
-                <?php if(Yii::$app->user->can('user')):?> 
+                <?php if(Yii::$app->user->can('user')):?>
                   <li><a href="<?= Url::to(['/user/default/index']); ?>"><?= Yii::t('frontend', 'Settings') ?></a>
                   </li>
                   <?php endif;?>
-                  
-                  <?php if(!(Yii::$app->user->can('manager'))):?> 
+
+                  <?php if(!(Yii::$app->user->can('manager'))):?>
                   <li><a href="<?= Url::to(['/site/actualizar-informacion-personal']); ?>"><?= Yii::t('frontend', 'Información de contacto') ?></a>
                   </li>
                       <?php endif;?>
-                      
-                 <?php if(Yii::$app->user->can('manager')):?> 
+
+                 <?php if(Yii::$app->user->can('manager')):?>
                  <li><a href="<?=  Yii::getAlias('@backendUrl'); ?>"><?= Yii::t('frontend', 'Backend') ?></a>
                   </li>
                   <?php endif;?>
@@ -310,9 +310,9 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
                   </li>
                 </ul>
               </li>
-              
+
               <?php endif;?>
-              
+
             </ul>
         <!-- Mobile Menu End -->
 
@@ -321,7 +321,7 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
 
     </header>
     <!-- End Header Section -->
-   
+
 
 
 
@@ -337,7 +337,7 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
             <div class="footer-widget mail-subscribe-widget">
               <h4>¡Mantente Conectado!<span class="head-line"></span></h4>
               <p>¡Únete a nuestra lista de correo para estar al día y obtener avisos sobre nuestros nuevos lanzamientos!</p>
-              
+
             </div>
             <div class="footer-widget social-widget">
               <h4>Síguenos en...<span class="head-line"></span></h4>
@@ -345,12 +345,12 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
                 <li>
                   <a class="facebook" href="https://www.facebook.com/multicode.alfredotrejo?fref=ts" target="_blank"><i class="fa fa-facebook"></i></a>
                 </li>
-                <!-- 
+                <!--
                 <li>
                   <a class="twitter" href="#"><i class="fa fa-twitter"></i></a>
                 </li>
                 -->
-                
+
                 <li>
                   <a class="google itl-tooltip" data-placement="bottom" title="YouTube" href="https://www.youtube.com/channel/UCsTYMtdxA-RbKesEiBAJkDA" target="_blank"><i class="fa fa-youtube"></i></a>
                 </li>
@@ -366,7 +366,7 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
 
 
           <!-- Start Twitter Widget -->
-          <!-- 
+          <!--
           <div class="col-md-3">
             <div class="footer-widget twitter-widget">
               <h4><span class="head-line"></span></h4>
@@ -375,7 +375,7 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
                   <p><a href="#">@SoyCerrajero </a>Los nuevos productos de la marca Philips estarán disponibles a partir de enero del 2017.</p>
                   <span>15 de Octubre del 2016</span>
                 </li>
-               
+
               </ul>
             </div>
           </div> -->
@@ -384,7 +384,7 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
 
 
 
-          
+
           <!-- End Flickr Widget -->
 
 
@@ -537,7 +537,7 @@ $this->beginContent('@frontend/views/layouts/_clear.php')
     </ul>
   </div>
 
-  
+
 
 <?php $this->endContent() ?>
 

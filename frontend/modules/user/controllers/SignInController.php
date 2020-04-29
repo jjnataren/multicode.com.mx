@@ -203,7 +203,7 @@ class SignInController extends \yii\web\Controller
 
         		$newProduct->save();
 
-        		$transaction->commit();
+
 
         	}catch (\Exception $e) {
         		$transaction->rollBack();
@@ -215,11 +215,11 @@ class SignInController extends \yii\web\Controller
 
             if ($user && $newProduct && $cliente) {
 
-            	if ($model->shouldBeActivated()) {
+                $transaction->commit();
 
-                } else {
-                    Yii::$app->getUser()->login($user);
-                }
+
+                Yii::$app->getUser()->login($user);
+
 
                 Yii::$app->getSession()->setFlash('alert', [
                 		'body' =>'<i class="fa fa-check-circle fa-2x"></i> <h4>Tu cuenta ha sido creada correctamente.</h4>',
@@ -227,17 +227,12 @@ class SignInController extends \yii\web\Controller
                 ]);
 
 
-                return $this->goHome();
+                return $this->redirect(['/producto-cliente/mis-productos']);
+
             }else{
 
+                $transaction->rollBack();
 
-            	Yii::$app->getSession()->setFlash('alert', [
-            			'body' => Yii::t(
-            					'frontend',
-            					'Error on create user.'
-            			),
-            			'options' => ['class'=>'alert-danger']
-            	]);
 
             }
         }

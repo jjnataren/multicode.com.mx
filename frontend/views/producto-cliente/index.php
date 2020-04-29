@@ -40,7 +40,7 @@ $this->registerJs("$('#dataTable1').dataTable( {'language': {'url': '//cdn.datat
 <div id="content">
 <div class="container">
 <div class="col-md-12">
-<h2 class="classic-title"><span><?php echo Yii::t('frontend', 'Productos Registrados') ?></span></h2>
+<h2 class="classic-title"><i class="fa fa-mobile"></i>    <span><?php echo Yii::t('frontend', 'Productos Registrados') ?></span></h2>
 
 
   <div class="table-responsive" >
@@ -48,8 +48,8 @@ $this->registerJs("$('#dataTable1').dataTable( {'language': {'url': '//cdn.datat
                           <table id="dataTable1" class="table table-condensed table-hover">
 							<thead>
 								<tr>
-
-									<th colspan="2">No. serie</th>
+									<th>Servicio token</th>
+									<th>No. serie</th>
 									<th>Descripción</th>
 
 									<th>Código de Validación</th>
